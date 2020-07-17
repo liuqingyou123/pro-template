@@ -6,6 +6,11 @@
   "author": "zhangj",
   "license": "AGPL-3",
   "private": true,
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn prettier && yarn lint:fix && yarn lint:script && git add ."
+    }
+  },
   "scripts": {
     "start": "rwp --dev",
     "build": "rwp --build",
@@ -24,6 +29,8 @@
   "devDependencies": {
     "@umijs/fabric": "^2.2.2",
     "babel-loader": "^8.1.0",
-    "less-loader": "^6.2.0"
+    "husky": "^4.2.5",
+    "less-loader": "^6.2.0",
+    "prettier": "^2.0.5"
   }
 }
