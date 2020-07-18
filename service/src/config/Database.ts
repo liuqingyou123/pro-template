@@ -1,10 +1,10 @@
-import { createConnection } from 'typeorm';
+import { createConnection, Connection } from 'typeorm';
 
 export const providers = [
     {
         provide: 'CORE',
-        useFactory: async () =>
-            await createConnection({
+        useFactory: async (): Promise<Connection> =>{
+            return await createConnection({
                 type: 'mysql',
                 host: '127.0.0.1',
                 port: 3306,
@@ -15,6 +15,7 @@ export const providers = [
                     process.cwd() + '/src/models/entity/**/*.entity{.ts,.js}',
                 ],
                 synchronize: true,
-            }),
+            })
+        } 
     },
 ];
