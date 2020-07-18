@@ -9,10 +9,6 @@ import { Authenticate } from '../components/index';
 export const BasicLayout = ({ children }: { children: any }) => {
     return (
         <ProLayout
-            style={{
-                height: '100%',
-                width: '100%',
-            }}
             logo={config.logo}
             title={config.title}
             navTheme={config.navTheme}
