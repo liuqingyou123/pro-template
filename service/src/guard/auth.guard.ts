@@ -9,7 +9,7 @@ import {
     Inject,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { Session } from '../entity/Session';
+import { Session } from '../entity/session.entity';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
