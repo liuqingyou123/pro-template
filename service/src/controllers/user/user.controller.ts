@@ -1,13 +1,15 @@
-import { Controller, Post, Body} from '@nestjs/common';
+import { Controller, Post, Body, Get, Headers } from '@nestjs/common';
 import { ApiProperty, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SHA512, enc} from 'crypto-js';
 import { v4 as UUID } from 'uuid'
 
-import { Account } from '../../entity/account.entity';
+import { Account, Fingerprint } from '../../entity/account.entity';
 import { Session } from '../../entity/session.entity';
+import { Menu } from '../../entity/menu.entity'
 import { AbnormalResponse, ResponseException } from '../../common/Response'
+import { Context } from '../../utils/Context';
 
 class LoginParam {
     @ApiProperty({
@@ -19,6 +21,19 @@ class LoginParam {
         description: '密码',
     })
     password: string
+
+    @ApiProperty({
+        description: '指纹',
+    })
+    fingerprint: string
+}
+
+class FingerprintLoginParam {
+
+    @ApiProperty({
+        description: '指纹',
+    })
+    fingerprint: string
 }
 
 class LoginResponse{
@@ -44,15 +59,44 @@ class LoginResponse{
     avatar: string
 }
 
+class MenuResponse {
+    @ApiProperty({
+        description: '菜单名称',
+    })
+    name: string
+
+    @ApiProperty({
+        description: '菜单图标'
+    })
+    icon: string
+
+    @ApiProperty({
+        description: '菜单路径'
+    })
+    path: string
+
+    @ApiProperty({
+        description: '子菜单信息'
+    })
+    children: MenuResponse[]
+}
+
 @ApiTags('用户信息接口')
 @Controller('user')
 export class UserController {
+
     constructor( 
         @InjectRepository(Account)
         private accountRepository: Repository<Account>,
         @InjectRepository(Session)
-        private sessionRepository: Repository<Session>
+        private sessionRepository: Repository<Session>,
+        @InjectRepository(Fingerprint)
+        private fingerprintRepository: Repository<Fingerprint>,
+        @InjectRepository(Menu)
+        private menuRepository: Repository<Menu>,
+        private context: Context
     ){}
+
 
     @Post('/login')
     @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
@@ -66,36 +110,114 @@ export class UserController {
             }
         })
         if(user){
-            const session = await this.sessionRepository.findOne({
+            const respone = this.createSessionByUser(user)
+            const fingerprint = await this.fingerprintRepository.find({
                 where:{
-                    uId: user.id
+                    hash: param.fingerprint
                 }
             })
-            if(session){
-                session.lestActivityTime = new Date()
-                await this.sessionRepository.save(session)
-                return {
-                    token: session.token,
-                    username: user.username,
-                    avatar: user.avatar,
+            
+            if(fingerprint.length === 0){
+                await this.fingerprintRepository.save({
+                    hash: SHA512(param.fingerprint).toString(enc.Base64),
                     uId: user.id,
-                }
-            }else{
-                const token: string = SHA512(UUID()).toString(enc.Base64)
-                await this.sessionRepository.create({
-                    uId: user.id,
-                    lestActivityTime: new Date(),
-                    token,
+                    createdAt: new Date(),
                 })
-                return {
-                    token,
-                    username: user.username,
-                    avatar: user.avatar,
-                    uId: user.id,
-                }
             }
+            return respone
         }
         throw new ResponseException("账号或者密码错误。")
     }
 
+    /**
+     * 通过用户信息创建Session
+     */
+    async createSessionByUser (user: Account): Promise<LoginResponse>{
+        const session = await this.sessionRepository.findOne({
+            where:{
+                uId: user.id
+            }
+        })
+        if(session){
+            session.lestActivityTime = new Date()
+            await this.sessionRepository.save(session)
+            return {
+                token: session.token,
+                username: user.username,
+                avatar: user.avatar,
+                uId: user.id,
+            }
+        }else{
+            const token: string = SHA512(UUID()).toString(enc.Base64)
+            await this.sessionRepository.save({
+                uId: user.id,
+                lestActivityTime: new Date(),
+                token,
+            })
+            return {
+                token,
+                username: user.username,
+                avatar: user.avatar,
+                uId: user.id,
+            }
+        }
+    }
+    @Get('/menu')
+    @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
+    @ApiResponse({ status: 500, description: '登入失败', type: AbnormalResponse })
+    @ApiOperation({ summary: '菜单信息',description: '用户登入的时候获取菜单信息'})
+    async menu(@Headers('rwp-token') token: string): Promise<MenuResponse>{
+        const group = await this.context.getGroup(token)
+        const dbMenu = await this.menuRepository.find({
+            where:{
+                auth:{
+                    gId: group.id
+                }
+            }
+        })
+        const loopsMenu = (menus: Menu[]) => {
+            return menus.map(menu => {
+                if(menu.children.length > 0){
+                    return {
+                        name: menu.name,
+                        icon: menu.icon,
+                        path: menu.path,
+                        children: loopsMenu(menu.children)
+                    }
+                }else {
+                    return {
+                        name: menu.name,
+                        icon: menu.icon,
+                        path: menu.path,
+                        children: []
+                    }
+                }
+            })
+        }
+
+        return loopsMenu(dbMenu)
+    }
+
+    @Post('/login/fingerprint')
+    @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
+    @ApiResponse({ status: 500, description: '登入失败', type: AbnormalResponse })
+    @ApiOperation({ summary: '指纹登入',description: '用户使用指纹登入系统'})
+    async fingerprintLogin(@Body() param: FingerprintLoginParam): Promise<LoginResponse>{
+        const fingerprint = await this.fingerprintRepository.find({
+            where: {
+                hash: param.fingerprint
+            }
+        })
+        if(fingerprint.length > 0){
+            const user =  await this.accountRepository.findOne({
+                where:{
+                    id: fingerprint.pop().id
+                }
+            })
+            if(user){
+                return this.createSessionByUser(user)
+            }
+        }
+        throw new ResponseException("指纹已经过期。")
+    }
 }

@@ -12,13 +12,16 @@ interface AuthenticateProps {
  * 判断用户当前是否已经登入系统
  * @returns true表示登入, false表示未登入
  */
-const isLogin = (): boolean => {
+export const isLogin = (): boolean => {
     const context = getContext();
     if (context) {
         return true;
     }
     return false;
 };
+
+// 登入页面的地址
+export const loginAddr = '/neglect/user/login';
 
 /**
  * 权限校验的业务组件
@@ -28,7 +31,7 @@ export const Authenticate = (props: AuthenticateProps) => {
     const location = useLocation();
     // 如果用户未登入,则跳转到登入界面
     if (!isLogin()) {
-        history.push('/neglect/user/login');
+        history.push(loginAddr);
     }
     // 如果有对应的访问权限,则返回对应的菜单信息
     if (withGuardRoute(location.pathname)) {
