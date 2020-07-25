@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn, TreeParent, TreeChildren, Tree } from 'typeorm';
 
 /**
  * 菜单权限
@@ -29,14 +29,11 @@ export class MenuAuth{
  * 基础菜单信息
  */
 @Entity()
+@Tree("materialized-path")
 export class Menu {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({
-        comment: '父节点',
-    })
-    parentId: number
 
     @Column({
         comment: '菜单名称',
@@ -48,16 +45,15 @@ export class Menu {
     })
     icon: string
 
-    @OneToMany(() => MenuAuth, menu => menu.mId)
-    @JoinColumn()
-    auth: MenuAuth[]
-
     @Column({
         comment: '菜单路径',
     })
     path: string
 
-    @OneToMany(() => Menu, menu => menu.parentId)
+    @TreeParent()
+    parent: Menu;
+
+    @TreeChildren()
     children: Menu[];
 
     @Column({

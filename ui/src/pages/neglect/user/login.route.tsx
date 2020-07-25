@@ -71,7 +71,7 @@ export default () => {
                 // 跳转到首页
                 history.replace('/');
             } catch (error) {
-                notification.warn(error.message);
+                console.warn(error);
             }
         })();
     }

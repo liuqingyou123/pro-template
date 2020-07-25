@@ -37,6 +37,7 @@ export const Authenticate = (props: AuthenticateProps) => {
     if (withGuardRoute(location.pathname)) {
         return props.children;
     }
+
     // 否则返回403无权限访问
     return (
         <Result status="403" title="403" subTitle="对不起,无权限访问此页面。" />

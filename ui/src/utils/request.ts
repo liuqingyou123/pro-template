@@ -30,10 +30,12 @@ request.interceptors.request.use((url, options) => {
         url,
         options,
     };
-    if (context && opt.options.data) {
-        opt.options.data = {
-            ...opt.options.data,
-            token: context.token,
+
+    // 将Token添加到请求头部
+    if (context) {
+        opt.options.headers = {
+            ...opt.options.headers,
+            'RWP-TOKEN': context.token,
         };
     }
     return opt;

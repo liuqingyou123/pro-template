@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Headers } from '@nestjs/common';
 import { ApiProperty, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, TreeRepository } from 'typeorm';
 import { SHA512, enc} from 'crypto-js';
 import { v4 as UUID } from 'uuid'
 
@@ -93,41 +93,9 @@ export class UserController {
         @InjectRepository(Fingerprint)
         private fingerprintRepository: Repository<Fingerprint>,
         @InjectRepository(Menu)
-        private menuRepository: Repository<Menu>,
+        private menuRepository: TreeRepository<Menu>,
         private context: Context
     ){}
-
-
-    @Post('/login')
-    @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
-    @ApiResponse({ status: 500, description: '登入失败', type: AbnormalResponse })
-    @ApiOperation({ summary: '用户登入',description: '用户使用账号密码登入系统'})
-    async login(@Body() param: LoginParam): Promise<LoginResponse> {
-        const user = await this.accountRepository.findOne({
-            where:{
-                username: param.username,
-                password: SHA512(param.password).toString(enc.Base64)
-            }
-        })
-        if(user){
-            const respone = this.createSessionByUser(user)
-            const fingerprint = await this.fingerprintRepository.find({
-                where:{
-                    hash: param.fingerprint
-                }
-            })
-            
-            if(fingerprint.length === 0){
-                await this.fingerprintRepository.save({
-                    hash: SHA512(param.fingerprint).toString(enc.Base64),
-                    uId: user.id,
-                    createdAt: new Date(),
-                })
-            }
-            return respone
-        }
-        throw new ResponseException("账号或者密码错误。")
-    }
 
     /**
      * 通过用户信息创建Session
@@ -162,22 +130,49 @@ export class UserController {
             }
         }
     }
+
+    @Post('/login')
+    @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
+    @ApiResponse({ status: 500, description: '登入失败', type: AbnormalResponse })
+    @ApiOperation({ summary: '用户登入',description: '用户使用账号密码登入系统'})
+    async login(@Body() param: LoginParam): Promise<LoginResponse> {
+        const user = await this.accountRepository.findOne({
+            where:{
+                username: param.username,
+                password: SHA512(param.password).toString(enc.Base64)
+            }
+        })
+        if(user){
+            const respone = this.createSessionByUser(user)
+            const fingerprint = await this.fingerprintRepository.find({
+                where:{
+                    hash: param.fingerprint
+                }
+            })
+            
+            if(fingerprint.length === 0){
+                await this.fingerprintRepository.save({
+                    hash: SHA512(param.fingerprint).toString(enc.Base64),
+                    uId: user.id,
+                    createdAt: new Date(),
+                })
+            }
+            return respone
+        }
+        throw new ResponseException("账号或者密码错误。")
+    }
+
+
     @Get('/menu')
     @ApiResponse({ status: 201, description: '登入成功', type: LoginResponse })
     @ApiResponse({ status: 500, description: '登入失败', type: AbnormalResponse })
     @ApiOperation({ summary: '菜单信息',description: '用户登入的时候获取菜单信息'})
     async menu(@Headers('rwp-token') token: string): Promise<MenuResponse>{
         const group = await this.context.getGroup(token)
-        const dbMenu = await this.menuRepository.find({
-            where:{
-                auth:{
-                    gId: group.id
-                }
-            }
-        })
+        const dbMenu = await this.menuRepository.findTrees()
         const loopsMenu = (menus: Menu[]) => {
             return menus.map(menu => {
-                if(menu.children.length > 0){
+                if(menu.children && menu.children.length > 0){
                     return {
                         name: menu.name,
                         icon: menu.icon,

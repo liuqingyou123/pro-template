@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "@ant-design/icons": "^4.2.1",
-    "@rwp/core": "~0.32.0-alpha.0",
+    "@rwp/core": "~0.43.0-alpha.0",
     "@rwp/react-ui": "~0.36.0-alpha.0",
-    "@rwp/render-react": "~0.41.0-alpha.0",
+    "@rwp/render-react": "~0.46.0-alpha.0",
     "@types/fingerprintjs2": "^2.0.0",
     "fingerprintjs2": "^2.1.0",
     "mobx": "^5.15.4",
