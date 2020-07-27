@@ -7,7 +7,7 @@ import { v4 as UUID } from 'uuid'
 
 import { Account, Fingerprint } from '../../entity/account.entity';
 import { Session } from '../../entity/session.entity';
-import { Menu } from '../../entity/menu.entity'
+import { Menu, MenuAuth } from '../../entity/menu.entity'
 import { AbnormalResponse, ResponseException } from '../../common/Response'
 import { Context } from '../../utils/Context';
 
@@ -94,6 +94,8 @@ export class UserController {
         private fingerprintRepository: Repository<Fingerprint>,
         @InjectRepository(Menu)
         private menuRepository: TreeRepository<Menu>,
+        @InjectRepository(MenuAuth)
+        private menuAuthRepository: TreeRepository<MenuAuth>,
         private context: Context
     ){}
 
@@ -170,6 +172,13 @@ export class UserController {
     async menu(@Headers('rwp-token') token: string): Promise<MenuResponse>{
         const group = await this.context.getGroup(token)
         const dbMenu = await this.menuRepository.findTrees()
+
+        const menuAuth = (await this.menuAuthRepository.find({
+            where:{
+                gId: group.id
+            }
+        })).map(ele => ele.mId)
+
         const loopsMenu = (menus: Menu[]) => {
             return menus.map(menu => {
                 if(menu.children && menu.children.length > 0){
@@ -177,6 +186,7 @@ export class UserController {
                         name: menu.name,
                         icon: menu.icon,
                         path: menu.path,
+                        key: menu.id,
                         children: loopsMenu(menu.children)
                     }
                 }else {
@@ -184,13 +194,14 @@ export class UserController {
                         name: menu.name,
                         icon: menu.icon,
                         path: menu.path,
+                        key: menu.id,
                         children: []
                     }
                 }
             })
         }
 
-        return loopsMenu(dbMenu)
+        return loopsMenu(dbMenu.filter(ele => menuAuth.includes(ele.id)))
     }
 
     @Post('/login/fingerprint')

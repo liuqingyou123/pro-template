@@ -11,17 +11,27 @@ export const withGuardRoute = (_pathname: string): boolean => {
 
 // 菜单配置接口
 interface Config {
+    // 标题
     title: string;
-    logo: string;
+    // 菜单logo
+    logo: string | React.FunctionComponent;
+    // 主题
     navTheme: 'light' | 'dark';
+    // 固定头部
     fixedHeader: boolean;
+    // 固定导航
     fixSiderbar: boolean;
 }
 
-export default ({
-    title: 'RWP.JS',
-    logo: () => <span />,
-    navTheme: 'dark',
-    fixedHeader: true,
-    fixSiderbar: true,
-} as unknown) as Config;
+/**
+ * 获取当前基本布局的配置信息
+ */
+export const basicLayoutConfig = (): Config => {
+    return {
+        title: 'RWP.JS',
+        logo: () => <span />,
+        navTheme: 'dark',
+        fixedHeader: true,
+        fixSiderbar: true,
+    };
+};

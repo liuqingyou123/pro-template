@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn, TreeParent, TreeChildren, Tree } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, TreeParent, TreeChildren, Tree } from 'typeorm';
 
 /**
  * 菜单权限
@@ -33,7 +33,6 @@ export class MenuAuth{
 export class Menu {
     @PrimaryGeneratedColumn()
     id: number;
-
 
     @Column({
         comment: '菜单名称',

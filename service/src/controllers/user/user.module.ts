@@ -4,7 +4,7 @@ import { UserController } from './user.controller'
 import { Account, Group } from '../../entity/account.entity';
 import { Session } from '../../entity/session.entity';
 import { Fingerprint } from '../../entity/account.entity'
-import { Menu } from '../../entity/menu.entity'
+import { Menu, MenuAuth } from '../../entity/menu.entity'
 import { Context } from '../../utils/Context'
 
 @Module({
@@ -14,7 +14,8 @@ import { Context } from '../../utils/Context'
         Session,
         Group,
         Fingerprint,
-        Menu
+        Menu,
+        MenuAuth
     ])],
     providers: [Context]
 })

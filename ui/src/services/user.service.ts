@@ -48,3 +48,13 @@ export const fingerprintLogin = async (): Promise<LoginResponse> => {
     });
     return result;
 };
+
+/**
+ * 获取当前用户的菜单信息
+ */
+export const obtainMenu = async () => {
+    const result = await request('/user/menu', {
+        method: 'GET',
+    });
+    return result;
+};

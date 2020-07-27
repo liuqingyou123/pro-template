@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 
 import { Session } from '../entity/session.entity'
 import { Account, Group } from '../entity/account.entity'
+import { ResponseException } from "src/common/Response";
 
 @Injectable()
 export class Context {
@@ -25,12 +26,16 @@ export class Context {
                 token, 
             }
         })
-
-        return await this.accountRepository.findOne({
+        const account = await this.accountRepository.findOne({
             where:{
                 id: session.uId
             }
         })
+
+        if(account){
+            return account
+        }
+        throw new ResponseException('会话已失效,请重新登入')
     }
 
     /**
@@ -43,6 +48,9 @@ export class Context {
                 uId: user.id
             }
         })
-        return group
+        if(group){
+            return group
+        }
+        throw new ResponseException('当前人员未维护对应的分组信息。')
     }
 }
