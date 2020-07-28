@@ -178,23 +178,20 @@ export class UserController {
                 gId: group.id
             }
         })).map(ele => ele.mId)
-
         const loopsMenu = (menus: Menu[]) => {
             return menus.map(menu => {
                 if(menu.children && menu.children.length > 0){
                     return {
                         name: menu.name,
                         icon: menu.icon,
-                        path: menu.path,
-                        key: menu.id,
+                        path: menu.path || `path${menu.id}`,
                         children: loopsMenu(menu.children)
                     }
                 }else {
                     return {
                         name: menu.name,
                         icon: menu.icon,
-                        path: menu.path,
-                        key: menu.id,
+                        path: menu.path || `path${menu.id}`,
                         children: []
                     }
                 }

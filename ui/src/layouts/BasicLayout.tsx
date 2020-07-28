@@ -3,7 +3,7 @@
  */
 import React, { ReactNode, useEffect, useState } from 'react';
 import { ProLayout, Dropdown, Menu } from '@rwp/react-ui';
-import { useHistory, Link } from 'react-router-dom';
+import { useHistory, Link, useLocation } from 'react-router-dom';
 import { obtainMenu } from '../services';
 import { basicLayoutConfig } from '../app';
 import { getContext } from '../utils/context';
@@ -37,38 +37,71 @@ type MenuItem = {
     name: string;
     path: string;
     icon: string | ReactNode;
+    key: string;
     children: MenuItem[];
 };
 
-const loopsMenu = (menu: MenuItem[]): MenuItem[] =>
+const loopsMenu = (
+    menu: MenuItem[],
+    callback?: (menuItem: MenuItem) => void,
+): MenuItem[] =>
     menu.map((ele) => {
+        if (callback) {
+            callback(ele);
+        }
         if (ele.children && ele.children.length > 0) {
             return {
                 name: ele.name,
                 path: ele.path,
+                key: ele.path,
                 icon: getIconByType(ele.icon as string),
-                children: loopsMenu(ele.children),
+                children: loopsMenu(ele.children, callback),
             };
         }
         return {
             name: ele.name,
             path: ele.path,
             icon: getIconByType(ele.icon as string),
+            key: ele.path,
             children: [],
         };
     });
 
+const splitOpenKey = (key: string) => {
+    const openKeys = key.match(/\/[A-z0-9]+/g);
+    const keys: string[] = [];
+    if (openKeys) {
+        let before = '';
+        openKeys.forEach((ele) => {
+            before += ele;
+            keys.push(before);
+        });
+    }
+    return keys;
+};
+
+/**
+ * 获取当前的展开节点
+ */
+const useObtainOpenKeys = () => {
+    const location = useLocation();
+    return splitOpenKey(location.pathname);
+};
 /**
  * 基础的布局信息
  */
 export const BasicLayout = ({ children }: { children: ReactNode }) => {
     const history = useHistory();
-    const [menu, setMenu] = useState([]);
+    const location = useLocation();
+    const [menu, setMenu] = useState<MenuItem[]>([]);
+    const defaultOpenKeys = useObtainOpenKeys();
+    const [openKeys, setOpenKeys] = useState<string[]>([]);
 
     useEffect(() => {
         (async () => {
             const menuTemp = await obtainMenu();
-            setMenu(menuTemp);
+            setMenu(loopsMenu(menuTemp));
+            setOpenKeys(defaultOpenKeys);
         })();
     }, []);
 
@@ -77,28 +110,33 @@ export const BasicLayout = ({ children }: { children: ReactNode }) => {
         history.push(loginAddr);
         return null;
     }
-    const config = basicLayoutConfig();
 
+    const config = basicLayoutConfig();
     return (
         <ProLayout
             logo={config.logo}
             title={config.title}
             navTheme={config.navTheme}
             rightContentRender={rightContentRender}
-            postMenuData={() => loopsMenu(menu)}
-            menuItemRender={(item) => {
-                if (item.path) {
-                    return (
-                        <Link to={item.path}>
-                            {item.icon} {item.name}
-                        </Link>
-                    );
+            selectedKeys={[location.pathname]}
+            menuDataRender={() => menu}
+            openKeys={openKeys}
+            onOpenChange={(keys) => {
+                if (keys) {
+                    let newOpenKeys: string[] = [];
+                    keys.forEach((ele) => {
+                        if (!openKeys.includes(ele)) {
+                            newOpenKeys = splitOpenKey(ele).concat(ele);
+                        }
+                    });
+                    setOpenKeys(newOpenKeys);
                 }
-                return (
-                    <span>
-                        {item.icon} {item.name}
-                    </span>
-                );
+            }}
+            menuItemRender={(item, defaultDom) => {
+                if (item.path) {
+                    return <Link to={item.path}>{defaultDom}</Link>;
+                }
+                return defaultDom;
             }}
         >
             <Authenticate>{children}</Authenticate>
